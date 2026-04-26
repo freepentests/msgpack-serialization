@@ -34,9 +34,10 @@ class MsgpackEncoder {
 				break;
 
 			case 'object':
-				if (data === null) this.appendNull();
-				if (data instanceof Uint8Array || data instanceof Uint8ClampedArray) this.appendBinArray(data);
-				if (data instanceof Array) this.appendArray(data);
+				if (data === null) return this.appendNull();
+				if (data instanceof Uint8Array || data instanceof Uint8ClampedArray) return this.appendBinArray(data);
+				if (data instanceof Array) return this.appendArray(data);
+				this.appendObject(data);
 				break;
 		}
 	}
@@ -75,6 +76,42 @@ class MsgpackEncoder {
 		array.forEach((element) => {
 			this.appendData(element);
 		});
+	}
+
+	appendObject(object) {
+		const objectKeys = Object.keys(object);
+		const objectLength = objectKeys.length;
+
+		const isFixMap = objectLength >= 0 && objectLength < 15;
+		const is16ByteMap = objectLength >= 15 && objectLength < (2 ** 16) - 1;
+		const is32ByteMap = objectLength >= (2 ** 16) - 1 && objectLength < (2 ** 32) - 1;
+
+		if (isFixMap) {
+			this.appendByte(0x80 + objectLength);
+		} else if (is16ByteMap) {
+			this.appendByte(0xde);
+
+			const buffer = new ArrayBuffer(2);
+			const dataView = new DataView(buffer);
+			dataView.setUint16(0, objectLength)
+			const encodedObjectLength = new Uint8Array(buffer);
+
+			this.appendBytes(encodedObjectLength);
+		} else if (is32ByteMap) {
+			this.appendByte(0xdf);
+
+			const buffer = new ArrayBuffer(2);
+			const dataView = new DataView(buffer);
+			dataView.setUint32(0, objectLength)
+			const encodedObjectLength = new Uint8Array(buffer);
+
+			this.appendBytes(encodedObjectLength);
+		}
+
+		for (const key of objectKeys) {
+			this.appendData(key);
+			this.appendData(object[key]);
+		}
 	}
 
 	appendString(string) {
@@ -318,5 +355,19 @@ console.log(new MsgpackEncoder().encode(214748324.128));
 console.log(new MsgpackEncoder().encode(-214748324.128));
 console.log(new MsgpackEncoder().encode("test"));
 console.log(new MsgpackEncoder().encode(new Uint8Array([1, 2, 3, 4])));
-console.log(new MsgpackEncoder().encode(['string', 123, 'lol', -999999.999, 1111111111]));
+console.log(new MsgpackEncoder().encode(['string', 123, 'lol', -999999.999, 1111111111, ['a', 'b', 111]]));
+
+const b = {};
+const a = {
+	name: 'Adam',
+	age: 40,
+	b: b,
+	info: {
+		birthyear: 1990,
+		cum: ['cum', 1, -1111.999]
+	}
+};
+b.a = a;
+
+console.log(new MsgpackEncoder().encode(b));
 
