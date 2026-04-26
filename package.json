@@ -1,0 +1,21 @@
+{
+  "name": "msgpack",
+  "version": "1.0.0",
+  "description": "This is an implementation of the MessagePack serialization format. Read the [MessagePack specification](https://github.com/msgpack/msgpack/blob/master/spec.md) and browse [their website](https://msgpack.org/) for more information about MessagePack.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/freepentests/msgpack-serialization.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/freepentests/msgpack-serialization/issues"
+  },
+  "homepage": "https://github.com/freepentests/msgpack-serialization#readme"
+}
