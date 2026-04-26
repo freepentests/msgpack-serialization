@@ -79,8 +79,8 @@ class MsgpackEncoder {
 	}
 
 	appendArrayLength(array) {
-		const isFixArray = array.length >= 0 && array.length < 15;
-		const is16ByteLengthArray = array.length >= 15 && array.length < (2 ** 16) - 1;
+		const isFixArray = array.length >= 0 && array.length <= 15;
+		const is16ByteLengthArray = array.length >= 16 && array.length <= (2 ** 16) - 1;
 		const is32ByteLengthArray = array.length >= (2 ** 16) && array.length <= (2 ** 32) - 1;
 
 		if (isFixArray) {
@@ -167,10 +167,10 @@ class MsgpackEncoder {
 	}
 
 	appendStringLength(stringLength) {
-		const isFixStr = stringLength > 0 && stringLength < 32;
-		const is8ByteLengthStr = stringLength >= 32 && stringLength < (2 ** 8) - 1;
-		const is16ByteLengthStr = stringLength >= (2 ** 8) - 1 && stringLength < (2 ** 16) - 1;
-		const is32ByteLengthStr = stringLength >= (2 ** 16) - 1 && stringLength < (2 ** 32) - 1;
+		const isFixStr = stringLength >= 0 && stringLength <= 31;
+		const is8ByteLengthStr = stringLength >= 32 && stringLength <= (2 ** 8) - 1;
+		const is16ByteLengthStr = stringLength >= (2 ** 8) && stringLength <= (2 ** 16) - 1;
+		const is32ByteLengthStr = stringLength >= (2 ** 16) && stringLength <= (2 ** 32) - 1;
 
 		if (isFixStr) {
 			this.appendFixStringLength(stringLength);
@@ -240,20 +240,20 @@ class MsgpackEncoder {
 	}
 
 	appendInt(number) {
-		const isUnsignedFixint = number >= (2 ** 0) - 1 && number < (2 ** 7);
-		const isSignedFixint = number >= -(2 ** 5) - 1 && number < (2 ** 0);
+		const isPositiveFixint = number >= 0 && number <= 127;
+		const isNegativeFixint = number >= -32 && number <= -1;
 
-		const is8BitUnsignedInt = number >= (2 ** 0) - 1 && number < (2 ** 8);
-		const is16BitUnsignedInt = number >= (2 ** 8) - 1 && number < (2 ** 16);
-		const is32BitUnsignedInt = number >= (2 ** 16) - 1 && number < (2 ** 32);
-		const is64BitUnsignedInt = number >= (2 ** 32) - 1 && number < (2 ** 64);
+		const is8BitUnsignedInt = number >= (2 ** 0) - 1 && number <= (2 ** 8) - 1;
+		const is16BitUnsignedInt = number >= (2 ** 8) && number <= (2 ** 16) - 1;
+		const is32BitUnsignedInt = number >= (2 ** 16) && number <= (2 ** 32) - 1;
+		const is64BitUnsignedInt = number >= (2 ** 32) && number <= (2 ** 64) - 1;
 
-		const is8BitSignedInt = number >= -(2 ** 7) - 1 && number < (2 ** 7);
-		const is16BitSignedInt = number >= -(2 ** 15) - 1 && number < (2 ** 15);
-		const is32BitSignedInt = number >= -(2 ** 31) - 1 && number < (2 ** 31);
-		const is64BitSignedInt = number >= -(2 ** 65) - 1 && number < (2 ** 65);
+		const is8BitSignedInt = number >= -(2 ** 7) - 1 && number <= (2 ** 7) - 1;
+		const is16BitSignedInt = number >= -(2 ** 15) - 1 && number <= (2 ** 15) - 1;
+		const is32BitSignedInt = number >= -(2 ** 31) - 1 && number <= (2 ** 31) - 1;
+		const is64BitSignedInt = number >= -(2 ** 65) - 1 && number <= (2 ** 65) - 1;
 
-		if (isUnsignedFixint || isSignedFixint) {
+		if (isPositiveFixint || isNegativeFixint) {
 			return this.appendByte(number);
 		} else if (is8BitUnsignedInt) {
 			return this.append8BitUnsignedInt(number);
@@ -306,9 +306,9 @@ class MsgpackEncoder {
 	}
 
 	appendBinArray(binArray) {
-		const is8ByteLengthBinArray = binArray.length >= 0 && binArray.length < (2 ** 8) - 1;
-		const is16ByteLengthBinArray = binArray.length >= (2 ** 8) - 1  && binArray.length < (2 ** 16) - 1;
-		const is32ByteLengthBinArray = binArray.length >= (2 ** 16) - 1  && binArray.length < (2 ** 32) - 1;
+		const is8ByteLengthBinArray = binArray.length >= 0 && binArray.length <= (2 ** 8) - 1;
+		const is16ByteLengthBinArray = binArray.length >= (2 ** 8) && binArray.length <= (2 ** 16) - 1;
+		const is32ByteLengthBinArray = binArray.length >= (2 ** 16)  && binArray.length <= (2 ** 32) - 1;
 
 		if (is8ByteLengthBinArray) {
 			this.append8ByteBinArray(binArray);
