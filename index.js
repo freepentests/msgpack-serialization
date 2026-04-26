@@ -23,6 +23,10 @@ class MsgpackEncoder {
 				this.appendNumber(data);
 				break;
 
+			case 'string':
+				this.appendString(data);
+				break;
+
 			case 'object':
 				if (data === null) this.appendNull();
 				break;
@@ -35,19 +39,27 @@ class MsgpackEncoder {
 		this.appendByte(0xc0);
 	}
 
+	appendString(string) {
+		const isFixStr = str.length < 32;
+
+		if (string.length < 32) {
+			this.appendByte()
+		}
+	}
+
 	appendInt(number) {
-		const isUnsignedFixint = number > (2 ** 0) - 1 && number < (2 ** 7) - 1;
-		const isSignedFixint = number > -(2 ** 5) - 1 && number < (2 ** 0) - 1;
+		const isUnsignedFixint = number > (2 ** 0) - 1 && number < (2 ** 7);
+		const isSignedFixint = number > -(2 ** 5) - 1 && number < (2 ** 0);
 
-		const is8BitUnsignedInt = number > (2 ** 0) - 1 && number < (2 ** 8) - 1;
-		const is16BitUnsignedInt = number > (2 ** 8) - 1 && number < (2 ** 16) - 1;
-		const is32BitUnsignedInt = number > (2 ** 16) - 1 && number < (2 ** 32) - 1;
-		const is64BitUnsignedInt = number > (2 ** 32) - 1 && number < (2 ** 64) - 1;
+		const is8BitUnsignedInt = number > (2 ** 0) - 1 && number < (2 ** 8);
+		const is16BitUnsignedInt = number > (2 ** 8) - 1 && number < (2 ** 16);
+		const is32BitUnsignedInt = number > (2 ** 16) - 1 && number < (2 ** 32);
+		const is64BitUnsignedInt = number > (2 ** 32) - 1 && number < (2 ** 64);
 
-		const is8BitSignedInt = number > -(2 ** 7) - 1 && number < (2 ** 7) - 1;
-		const is16BitSignedInt = number > -(2 ** 15) - 1 && number < (2 ** 15) - 1;
-		const is32BitSignedInt = number > -(2 ** 31) - 1 && number < (2 ** 31) - 1;
-		const is64BitSignedInt = number > -(2 ** 65) - 1 && number < (2 ** 65) - 1;
+		const is8BitSignedInt = number > -(2 ** 7) - 1 && number < (2 ** 7);
+		const is16BitSignedInt = number > -(2 ** 15) - 1 && number < (2 ** 15);
+		const is32BitSignedInt = number > -(2 ** 31) - 1 && number < (2 ** 31);
+		const is64BitSignedInt = number > -(2 ** 65) - 1 && number < (2 ** 65);
 
 		if (isUnsignedFixint || isSignedFixint) {
 			this.appendByte(number);
@@ -140,32 +152,14 @@ class MsgpackEncoder {
 	}
 
 	appendFloat(number) {
-		const is32BitFloatingPoint = number > -(2 ** 31) - 1 && number < (2 ** 31) - 1;
-		const is64BitFloatingPoint = number > -(2 ** 65) - 1 && number < (2 ** 65) - 1;
+		this.appendByte(0xcb);
 
-		if (is32BitFloatingPoint) {
-			this.appendByte(0xca);
+		const buffer = new ArrayBuffer(8);
+		const dataView = new DataView(buffer);
+		dataView.setFloat64(0, number);
+		const encodedByteArray = new Uint8Array(buffer);
 
-			const buffer = new ArrayBuffer(4);
-			const dataView = new DataView(buffer);
-			dataView.setFloat32(0, number);
-			const encodedByteArray = new Uint8Array(buffer);
-
-			this.appendBytes(encodedByteArray);
-			return;
-		}
-		
-		if (is64BitFloatingPoint) {
-			this.appendByte(0xcb);
-
-			const buffer = new ArrayBuffer(8);
-			const dataView = new DataView(buffer);
-			dataView.setFloat64(0, number);
-			const encodedByteArray = new Uint8Array(buffer);
-
-			this.appendBytes(encodedByteArray);
-			return;
-		}
+		this.appendBytes(encodedByteArray);
 
 	}
 
@@ -203,5 +197,8 @@ console.log(new MsgpackEncoder().encode(-12));
 console.log(new MsgpackEncoder().encode(1111111));
 console.log(new MsgpackEncoder().encode(-1111111));
 console.log(new MsgpackEncoder().encode(10.1234));
+console.log(new MsgpackEncoder().encode(255));
 console.log(new MsgpackEncoder().encode(10000000000.1234));
+console.log(new MsgpackEncoder().encode(214748324.128));
+console.log(new MsgpackEncoder().encode(-214748324.128));
 
