@@ -44,6 +44,11 @@ class MsgpackEncoder {
 		const is32BitUnsignedInt = number > (2 ** 16) - 1 && number < (2 ** 32) - 1;
 		const is64BitUnsignedInt = number > (2 ** 32) - 1 && number < (2 ** 64) - 1;
 
+		const is8BitSignedInt = number > -(2 ** 7) - 1 && number < (2 ** 7) - 1;
+		const is16BitSignedInt = number > -(2 ** 15) - 1 && number < (2 ** 15) - 1;
+		const is32BitSignedInt = number > -(2 ** 31) - 1 && number < (2 ** 31) - 1;
+		const is64BitSignedInt = number > -(2 ** 65) - 1 && number < (2 ** 65) - 1;
+
 		if (isUnsignedFixint || isSignedFixint) {
 			this.appendByte(number);
 			return;
@@ -90,9 +95,78 @@ class MsgpackEncoder {
 			this.appendBytes(encodedByteArray);
 			return;
 		}
+
+		if (is8BitSignedInt) {
+			this.appendByte(0xd0);
+			this.appendByte(number);
+			return;
+		}
+
+		if (is16BitSignedInt) {
+			this.appendByte(0xd1);
+
+			const buffer = new ArrayBuffer(2);
+			const dataView = new DataView(buffer);
+			dataView.setInt16(0, number);
+			const encodedByteArray = new Uint8Array(buffer);
+
+			this.appendBytes(encodedByteArray);
+			return;
+		}
+
+		if (is32BitSignedInt) {
+			this.appendByte(0xd2);
+
+			const buffer = new ArrayBuffer(4);
+			const dataView = new DataView(buffer);
+			dataView.setInt32(0, number);
+			const encodedByteArray = new Uint8Array(buffer);
+
+			this.appendBytes(encodedByteArray);
+			return;
+		}
+		
+		if (is64BitSignedInt) {
+			this.appendByte(0xd3);
+
+			const buffer = new ArrayBuffer(8);
+			const dataView = new DataView(buffer);
+			dataView.setInt64(0, number);
+			const encodedByteArray = new Uint8Array(buffer);
+
+			this.appendBytes(encodedByteArray);
+			return;
+		}
 	}
 
 	appendFloat(number) {
+		const is32BitFloatingPoint = number > -(2 ** 31) - 1 && number < (2 ** 31) - 1;
+		const is64BitFloatingPoint = number > -(2 ** 65) - 1 && number < (2 ** 65) - 1;
+
+		if (is32BitFloatingPoint) {
+			this.appendByte(0xca);
+
+			const buffer = new ArrayBuffer(4);
+			const dataView = new DataView(buffer);
+			dataView.setFloat32(0, number);
+			const encodedByteArray = new Uint8Array(buffer);
+
+			this.appendBytes(encodedByteArray);
+			return;
+		}
+		
+		if (is64BitFloatingPoint) {
+			this.appendByte(0xcb);
+
+			const buffer = new ArrayBuffer(8);
+			const dataView = new DataView(buffer);
+			dataView.setFloat64(0, number);
+			const encodedByteArray = new Uint8Array(buffer);
+
+			this.appendBytes(encodedByteArray);
+			return;
+		}
+
 	}
 
 	appendNumber(number) {
@@ -127,4 +201,7 @@ console.log(new MsgpackEncoder().encode(false));
 console.log(new MsgpackEncoder().encode(12));
 console.log(new MsgpackEncoder().encode(-12));
 console.log(new MsgpackEncoder().encode(1111111));
+console.log(new MsgpackEncoder().encode(-1111111));
+console.log(new MsgpackEncoder().encode(10.1234));
+console.log(new MsgpackEncoder().encode(10000000000.1234));
 
