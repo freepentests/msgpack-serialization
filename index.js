@@ -14,6 +14,12 @@ class MsgpackEncoder {
 	}
 
 	encode(data) {
+		this.appendData(data);
+
+		return this.byteArray.slice(0, this.index);
+	}
+	
+	appendData(data) {
 		switch (typeof data) {
 			case 'boolean':
 				this.appendBool(data);
@@ -29,14 +35,46 @@ class MsgpackEncoder {
 
 			case 'object':
 				if (data === null) this.appendNull();
+				if (data instanceof Uint8Array || data instanceof Uint8ClampedArray) this.appendBinArray(data);
+				if (data instanceof Array) this.appendArray(data);
 				break;
 		}
-
-		return this.byteArray.slice(0, this.index);
 	}
 
 	appendNull() {
 		this.appendByte(0xc0);
+	}
+
+	appendArray(array) {
+		const isFixArray = array.length >= 0 && array.length < 15
+		const is16ByteLengthArray = array.length >= 15 && array.length < (2 ** 16) - 1;
+		const is32ByteLengthArray = array.length >= (2 ** 16) && array.length <= (2 ** 32) - 1;
+
+		if (isFixArray) {
+			this.appendByte(0x90 + array.length);
+		} else if (is16ByteLengthArray) {
+			this.appendByte(0xdc);
+
+			const buffer = new ArrayBuffer(2);
+			const dataView = new DataView(buffer);
+			dataView.setUint16(0, array.length);
+			const encodedArrayLength = new Uint8Array(buffer);
+
+			this.appendBytes(encodedArrayLength);
+		} else if (is32ByteLengthArray) {
+			this.appendByte(0xdd);
+
+			const buffer = new ArrayBuffer(4);
+			const dataView = new DataView(buffer);
+			dataView.setUint32(0, array.length);
+			const encodedArrayLength = new Uint8Array(buffer);
+
+			this.appendBytes(encodedArrayLength);
+		}
+
+		array.forEach((element) => {
+			this.appendData(element);
+		});
 	}
 
 	appendString(string) {
@@ -197,7 +235,6 @@ class MsgpackEncoder {
 		const encodedByteArray = new Uint8Array(buffer);
 
 		this.appendBytes(encodedByteArray);
-
 	}
 
 	appendNumber(number) {
@@ -206,7 +243,37 @@ class MsgpackEncoder {
 		} else {
 			this.appendInt(number);
 		}
+	}
 
+	appendBinArray(binArray) {
+		const is8ByteLengthBinArray = binArray.length >= 0 && binArray.length < (2 ** 8) - 1;
+		const is16ByteLengthBinArray = binArray.length >= (2 ** 8) - 1  && binArray.length < (2 ** 16) - 1;
+		const is32ByteLengthBinArray = binArray.length >= (2 ** 16) - 1  && binArray.length < (2 ** 32) - 1;
+
+		if (is8ByteLengthBinArray) {
+			this.appendBytes([0xc4, binArray.length]);
+			this.appendBytes(binArray);
+		} else if (is16ByteLengthBinArray) {
+			this.appendByte(0xc5);
+
+			const buffer = new ArrayBuffer(2);
+			const dataView = new DataView(buffer);
+			dataView.setUint16(0, binArray.length);
+			const encodedByteArray = new Uint8Array(buffer);
+
+			this.appendBytes(encodedByteArray);
+			this.appendBytes(binArray);
+		} else if (is32ByteLengthBinArray) {
+			this.appendByte(0xc6);
+
+			const buffer = new ArrayBuffer(4);
+			const dataView = new DataView(buffer);
+			dataView.setUint32(0, binArray.length);
+			const encodedByteArray = new Uint8Array(buffer);
+
+			this.appendBytes(encodedByteArray);
+			this.appendBytes(binArray);
+		}
 	}
 
 	appendBool(bool) {
@@ -250,4 +317,6 @@ console.log(new MsgpackEncoder().encode(10000000000.1234));
 console.log(new MsgpackEncoder().encode(214748324.128));
 console.log(new MsgpackEncoder().encode(-214748324.128));
 console.log(new MsgpackEncoder().encode("test"));
+console.log(new MsgpackEncoder().encode(new Uint8Array([1, 2, 3, 4])));
+console.log(new MsgpackEncoder().encode(['string', 123, 'lol', -999999.999, 1111111111]));
 
