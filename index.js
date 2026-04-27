@@ -10,6 +10,8 @@ if (!Number.prototype.isFloat) {
 }
 
 class MsgpackEncoder {
+	serialize = this.encode;
+
 	constructor() {
 		this.byteArray = new Uint8Array(128);
 		this.index = 0;
@@ -357,6 +359,8 @@ class MsgpackEncoder {
 }
 
 class MsgpackDecoder {
+	decode() {
+	}
 }
 
 const a = {
