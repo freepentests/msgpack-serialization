@@ -291,17 +291,17 @@ class MsgpackEncoder {
 		}
 	}
 
-	append8ByteBinArray(binArray) {
+	append8ByteBinArrayLength(binArray) {
 		this.appendBytes([TypeIdentifiers.var_8ByteLengthBinArray, binArray.length]);
 	}
 
-	append16ByteBinArray(binArray) {
+	append16ByteBinArrayLength(binArray) {
 		this.appendByte(TypeIdentifiers.var_16ByteLengthBinArray);
 		const encodedBinArrayLength = this.createByteArray(2, 'setUint16', binArray.length);
 		this.appendBytes(encodedBinArrayLength);
 	}
 
-	append32ByteBinArray(binArray) {
+	append32ByteBinArrayLength(binArray) {
 		this.appendByte(TypeIdentifiers.var_32ByteLengthBinArray);
 		const encodedBinArrayLength = this.createByteArray(4, 'setUint32', binArray.length);
 		this.appendBytes(encodedBinArrayLength);
@@ -313,12 +313,14 @@ class MsgpackEncoder {
 		const is32ByteLengthBinArray = binArray.length >= (2 ** 16)  && binArray.length <= (2 ** 32) - 1;
 
 		if (is8ByteLengthBinArray) {
-			this.append8ByteBinArray(binArray);
+			this.append8ByteBinArrayLength(binArray);
 		} else if (is16ByteLengthBinArray) {
-			this.append16ByteBinArray(binArray);
+			this.append16ByteBinArrayLength(binArray);
 		} else if (is32ByteLengthBinArray) {
-			this.append32ByteBinArray(binArray);
+			this.append32ByteBinArrayLength(binArray);
 		}
+		
+		this.appendBytes(binArray);
 	}
 
 	appendBool(bool) {
@@ -359,18 +361,84 @@ class MsgpackEncoder {
 }
 
 class MsgpackDecoder {
-	decode() {
+	decode(data) {
+		const byteArray = new Uint8Array(data); // assuming that data is an arraybuffer or something that can be converted into a Uint8Array; I will be adding error checking later
+		const typeIdentifier = byteArray[0]; // first byte is type identifier
+
+		const isFixStr = typeIdentifier >= TypeIdentifiers.fixStr && typeIdentifier <= TypeIdentifiers.fixStr + 31;
+
+		if (isFixStr) {
+			return this.decodeFixStr(data);
+		} 
+
+		switch (typeIdentifier) {
+			// switch hell
+			// but i'll fix it
+			case TypeIdentifiers.trueBool: return true;
+			case TypeIdentifiers.falseBool: return false;
+			case TypeIdentifiers.nil: return null;
+			case TypeIdentifiers.float64: return this.decodeFloat64(data);
+
+			/*
+			case TypeIdentifiers.fixMap: return this.decodeFixMap(data);
+			case TypeIdentifiers.fixArray: return this.decodeFixArray(data);
+			*/
+
+			case TypeIdentifiers.var_8ByteLengthBinArray: return this.decode8ByteLengthBinArray(data);
+			case TypeIdentifiers.var_16ByteLengthBinArray: return this.decode16ByteLengthBinArray(data);
+			case TypeIdentifiers.var_32ByteLengthBinArray: return this.decode32ByteLengthBinArray(data);
+
+			case TypeIdentifiers.var_8BitUnsignedInt: return this.decode8BitUnsignedInt(data);
+			case TypeIdentifiers.var_16BitUnsignedInt: return this.decode16BitUnsignedInt(data);
+			case TypeIdentifiers.var_32BitUnsignedInt: return this.decode32BitUnsignedInt(data);
+			case TypeIdentifiers.var_64BitUnsignedInt: return this.decode64BitUnsignedInt(data);
+			case TypeIdentifiers.var_8BitSignedInt: return this.decode8BitSignedInt(data);
+			case TypeIdentifiers.var_16BitSignedInt: return this.decode16BitSignedInt(data);
+			case TypeIdentifiers.var_32BitSignedInt: return this.decode32BitSignedInt(data);
+			case TypeIdentifiers.var_64BitSignedInt: return this.decode64BitSignedInt(data);
+			case TypeIdentifiers.var_8ByteLengthStr: return this.decode8ByteLengthStr(data);
+			case TypeIdentifiers.var_16ByteLengthStr: return this.decode16ByteLengthStr(data);
+			case TypeIdentifiers.var_32ByteLengthStr: return this.decode32ByteLengthStr(data);
+			case TypeIdentifiers.var_16ByteMap: return this.decode16ByteMap(data);
+			case TypeIdentifiers.var_32ByteMap: return this.decode32ByteMap(data);
+			case TypeIdentifiers.var_16ByteLengthArray: return this.decode16ByteLengthArray(data);
+			case TypeIdentifiers.var_32ByteLengthArray: return this.decode32ByteLengthArray(data);
+		}
+	}
+
+	decode8ByteLengthBinArray(data) {
+		const binArrayLength = data[1];
+		const binArray = data.slice(2, binArrayLength + 2);
+
+		return binArray;
+	}
+
+	decode16ByteLengthBinArray(data) {
+		const binArrayLength = new DataView(data.buffer).getUint16(1);
+		const binArray = data.slice(3, binArrayLength + 3);
+
+		return binArray;
+	}
+
+	decode32ByteLengthBinArray(data) {
+		const binArrayLength = new DataView(data.buffer).getUint32(1);
+		const binArray = data.slice(5, binArrayLength + 5);
+
+		return binArray;
+	}
+
+	decodeFixStr(data) {
+		const stringLength = data[0] - TypeIdentifiers.fixStr;
+		const decodedString = new TextDecoder().decode(data.slice(1, stringLength + 1));
+
+		return decodedString;
+	}
+
+	decodeFloat64(data) {
+		const dataView = new DataView(data.buffer);
+		return dataView.getFloat64(1);
 	}
 }
 
-const a = {
-	name: 'Adam',
-	age: 40,
-	info: {
-		birthyear: 1990,
-		cum: ['cum', 1, -1111.999]
-	}
-};
-
-console.log(new MsgpackEncoder().encode(a));
+console.log(new MsgpackDecoder().decode(new MsgpackEncoder().encode(new Uint8Array(10000000).fill(1))));
 
