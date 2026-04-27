@@ -242,9 +242,9 @@ class MsgpackEncoder {
 	}
 
 	appendInt(number) {
-		const isPositiveFixint = number >= 0 && number <= 127;
-		const isNegativeFixint = number >= -32 && number <= -1;
+		const isFixint = number >= -32 && number <= 127;
 
+		const isNegativeFixint = number >= -32 && number <= -1;
 		const is8BitUnsignedInt = number >= (2 ** 0) - 1 && number <= (2 ** 8) - 1;
 		const is16BitUnsignedInt = number >= (2 ** 8) && number <= (2 ** 16) - 1;
 		const is32BitUnsignedInt = number >= (2 ** 16) && number <= (2 ** 32) - 1;
@@ -255,7 +255,7 @@ class MsgpackEncoder {
 		const is32BitSignedInt = number >= -(2 ** 31) - 1 && number <= (2 ** 31) - 1;
 		const is64BitSignedInt = number >= -(2 ** 65) - 1 && number <= (2 ** 65) - 1;
 
-		if (isPositiveFixint || isNegativeFixint) {
+		if (isFixint) {
 			return this.appendByte(number);
 		} else if (is8BitUnsignedInt) {
 			return this.append8BitUnsignedInt(number);
@@ -366,10 +366,13 @@ class MsgpackDecoder {
 		const typeIdentifier = byteArray[0]; // first byte is type identifier
 
 		const isFixStr = typeIdentifier >= TypeIdentifiers.fixStr && typeIdentifier <= TypeIdentifiers.fixStr + 31;
+		const isFixInt = typeIdentifier >= -32 && typeIdentifier <= 127
 
 		if (isFixStr) {
 			return this.decodeFixStr(data);
-		} 
+		} else if (isFixInt) {
+			return typeIdentifier;
+		}
 
 		switch (typeIdentifier) {
 			// switch hell
@@ -392,6 +395,7 @@ class MsgpackDecoder {
 			case TypeIdentifiers.var_16BitUnsignedInt: return this.decode16BitUnsignedInt(data);
 			case TypeIdentifiers.var_32BitUnsignedInt: return this.decode32BitUnsignedInt(data);
 			case TypeIdentifiers.var_64BitUnsignedInt: return this.decode64BitUnsignedInt(data);
+
 			case TypeIdentifiers.var_8BitSignedInt: return this.decode8BitSignedInt(data);
 			case TypeIdentifiers.var_16BitSignedInt: return this.decode16BitSignedInt(data);
 			case TypeIdentifiers.var_32BitSignedInt: return this.decode32BitSignedInt(data);
@@ -404,6 +408,38 @@ class MsgpackDecoder {
 			case TypeIdentifiers.var_16ByteLengthArray: return this.decode16ByteLengthArray(data);
 			case TypeIdentifiers.var_32ByteLengthArray: return this.decode32ByteLengthArray(data);
 		}
+	}
+
+	decode8BitUnsignedInt(data) {
+		return data[1];
+	}
+
+	decode16BitUnsignedInt(data) {
+		return new DataView(data.buffer).getUint16(1);
+	}
+
+	decode32BitUnsignedInt(data) {
+		return new DataView(data.buffer).getUint32(1);
+	}
+
+	decode64BitUnsignedInt(data) {
+		return new DataView(data.buffer).getUint64(1);
+	}
+
+	decode8BitSignedInt(data) {
+		return new DataView(data.buffer).getInt8(1);
+	}
+
+	decode16BitSignedInt(data) {
+		return new DataView(data.buffer).getInt16(1);
+	}
+
+	decode32BitSignedInt(data) {
+		return new DataView(data.buffer).getInt32(1);
+	}
+
+	decode64BitSignedInt(data) {
+		return new DataView(data.buffer).getInt64(1);
 	}
 
 	decode8ByteLengthBinArray(data) {
@@ -440,5 +476,5 @@ class MsgpackDecoder {
 	}
 }
 
-console.log(new MsgpackDecoder().decode(new MsgpackEncoder().encode(new Uint8Array(10000000).fill(1))));
+console.log(new MsgpackDecoder().decode(new MsgpackEncoder().encode(-1111111)));
 
